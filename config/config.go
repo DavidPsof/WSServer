@@ -29,7 +29,7 @@ func Init() {
 
 	config = &cfg
 
-	log.Infof("config file initialized %s", file)
+	log.Infof("config file initialized: %s", file)
 	log.Debugf("config: %v", config)
 }
 
