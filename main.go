@@ -1,5 +1,7 @@
 package main
 
-func main() {
+import "WSServer/config"
 
+func main() {
+	config.Init()
 }
