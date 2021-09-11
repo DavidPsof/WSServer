@@ -33,6 +33,18 @@ func Init() {
 	log.Debugf("config: %v", config)
 }
 
+// Get - returns the current configuration
+func Get() *serverConfig {
+	return config
+}
+
 type serverConfig struct {
-	port int
+	Port int
+	Log  logConfig
+}
+
+type logConfig struct {
+	FileName     string
+	MaxCountFile int
+	Level        string
 }

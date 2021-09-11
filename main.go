@@ -1,7 +1,11 @@
 package main
 
-import "WSServer/config"
+import (
+	"WSServer/config"
+	"WSServer/logger"
+)
 
 func main() {
 	config.Init()
+	logger.Init()
 }
