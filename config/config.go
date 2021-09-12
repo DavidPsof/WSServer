@@ -39,8 +39,9 @@ func Get() *serverConfig {
 }
 
 type serverConfig struct {
-	Port int
-	Log  logConfig
+	Port         int
+	ClientNumber int
+	Log          logConfig
 }
 
 type logConfig struct {

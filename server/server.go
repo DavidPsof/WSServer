@@ -15,6 +15,8 @@ var WSServer *socketio.Server
 
 // Init - Web socket server initialization
 func Init() {
+	InitStack()
+
 	pt := polling.Default
 
 	wt := websocket.Default
@@ -39,9 +41,16 @@ func Init() {
 	go run()
 }
 
+// Connection handling method
 func connection(c socketio.Conn) error {
 	start := time.Now()
 	defer log.Debugf("Processed connection from %v (%v)", c.RemoteAddr(), time.Since(start))
+
+	hub := hubs.GetActualHub()
+	client := NewClient(c.ID())
+	hub.AddClient(&client)
+
+	c.Join(hub.ID.String())
 
 	return nil
 }
