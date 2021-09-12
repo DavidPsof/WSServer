@@ -4,6 +4,7 @@ import (
 	"WSServer/config"
 	"WSServer/handler"
 	"WSServer/logger"
+	"WSServer/server"
 	"context"
 	"fmt"
 	"github.com/subchen/go-log"
@@ -17,6 +18,7 @@ import (
 func main() {
 	config.Init()
 	logger.Init()
+	server.Init()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()

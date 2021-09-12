@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"WSServer/server"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
@@ -13,5 +14,6 @@ func NewHandler() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
+	r.Handle("/socket.io/", server.WSServer)
 	return r
 }
