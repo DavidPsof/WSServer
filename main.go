@@ -1,6 +1,7 @@
 package main
 
 import (
+	"WSServer/cmd"
 	"WSServer/config"
 	"WSServer/handler"
 	"WSServer/logger"
@@ -33,6 +34,8 @@ func main() {
 
 	defer shutdown(httpServer, ctx)
 	go serve(httpServer)
+
+	go cmd.Scan()
 
 	gs := make(chan os.Signal, 1)
 	signal.Notify(gs, syscall.SIGTERM, syscall.SIGINT)

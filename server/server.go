@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	socketio "github.com/googollee/go-socket.io"
 	"github.com/googollee/go-socket.io/engineio"
 	"github.com/googollee/go-socket.io/engineio/transport"
@@ -47,10 +48,10 @@ func connection(c socketio.Conn) error {
 	defer log.Debugf("Processed connection from %v (%v)", c.RemoteAddr(), time.Since(start))
 
 	hub := hubs.GetActualHub()
-	client := NewClient(c.ID())
+	client := NewClient(c.ID(), hub.ID.String())
 	hub.AddClient(&client)
 
-	c.Join(hub.ID.String())
+	WSServer.JoinRoom("/", hub.ID.String(), c)
 
 	return nil
 }
@@ -66,4 +67,27 @@ func shutdown() {
 	if err := WSServer.Close(); err != nil {
 		log.Fatalf("cant stop WSServer Socket.IO: %v", err)
 	}
+}
+
+// SendMessage - sending a message to the hub
+func SendMessage(msg string, hubID string) string {
+	ok := WSServer.BroadcastToRoom("/", hubID, "test", msg)
+	if !ok {
+		fmt.Println("cant send message in room")
+	}
+
+	return fmt.Sprintf("message sent to %s", hubID)
+}
+
+// SendMessageToUser - sending a message to the specified client
+func SendMessageToUser(cID string, msg string) string {
+	client := hubs.GetClientByID(cID)
+
+	WSServer.ForEach("/", client.HubID, func(conn socketio.Conn) {
+		if client.ConnectionID == conn.ID() {
+			conn.Emit("test2", msg, 1)
+		}
+	})
+
+	return fmt.Sprintf("Message sended to %v", client.ID.String())
 }

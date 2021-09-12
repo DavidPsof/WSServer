@@ -48,3 +48,16 @@ func (s *stack) GetActualHub() *Hub {
 
 	return s.NewHub()
 }
+
+// GetClientByID - return client by identifier
+func (s *stack) GetClientByID(ID string) *Client {
+	for _, item := range s.items {
+		for _, client := range item.Clients {
+			if client.ID.String() == ID {
+				return client
+			}
+		}
+	}
+
+	return nil
+}
