@@ -1,0 +1,20 @@
+Задание 2
+
+SELECT
+  GROUP_CONCAT(DISTINCT
+    CONCAT( 'if(
+           count(case 
+           	when StartPeriod = ''', StartPeriod, ''' then "1"
+           	when EndPeriod = ''', EndPeriod, ''' then "1"
+           end), "+", "") AS `', CONCAT(MONTH(StartPeriod), ". ", DAYOFMONTH(StartPeriod)
+          ), '`' )
+  ) INTO @sql
+FROM
+  timework;
+SET @sql = CONCAT('SELECT EmployeeID, ', @sql, ' 
+                  FROM timework 
+                   GROUP BY EmployeeID');
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
