@@ -8,12 +8,17 @@ import (
 	"net/http"
 )
 
+// NewHandler - return a new http server
 func NewHandler() http.Handler {
+	sm := server.NewServerManager()
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.Recoverer)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
+	// r.Use(cors.AllowAll().Handler)
 
-	r.Handle("/socket.io/", server.WSServer)
+	r.HandleFunc("/connect", sm.SocketConnection)
+
 	return r
 }

@@ -42,6 +42,7 @@ type serverConfig struct {
 	Port         int
 	ClientNumber int
 	Log          logConfig
+	JwtKey       string
 }
 
 type logConfig struct {

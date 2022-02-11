@@ -1,93 +1,63 @@
 package server
 
 import (
+	"WSServer/config"
+	"WSServer/domain"
 	"fmt"
-	socketio "github.com/googollee/go-socket.io"
-	"github.com/googollee/go-socket.io/engineio"
-	"github.com/googollee/go-socket.io/engineio/transport"
-	"github.com/googollee/go-socket.io/engineio/transport/polling"
-	"github.com/googollee/go-socket.io/engineio/transport/websocket"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/websocket"
 	"github.com/subchen/go-log"
 	"net/http"
-	"time"
+	"strconv"
 )
 
-var WSServer *socketio.Server
-
-// Init - Web socket server initialization
-func Init() {
-	InitStack()
-
-	pt := polling.Default
-
-	wt := websocket.Default
-	wt.CheckOrigin = func(req *http.Request) bool {
-		return true
-	}
-
-	s, err := socketio.NewServer(&engineio.Options{
-		Transports: []transport.Transport{
-			pt,
-			wt,
-		},
-	})
-
-	if err != nil {
-		log.Fatalf("cant start Socket.IO server: %v", err)
-	}
-
-	s.OnConnect("/", connection)
-	WSServer = s
-
-	go run()
+// ServerManager - describe server manager struct
+type ServerManager struct {
+	Connections map[string]*websocket.Conn
 }
 
-// Connection handling method
-func connection(c socketio.Conn) error {
-	start := time.Now()
-	defer log.Debugf("Processed connection from %v (%v)", c.RemoteAddr(), time.Since(start))
+// NewServerManager - create new server manager
+func NewServerManager() *ServerManager {
+	manager := ServerManager{}
+	manager.Connections = make(map[string]*websocket.Conn, 0)
 
-	hub := hubs.GetActualHub()
-	client := NewClient(c.ID(), hub.ID.String())
-	hub.AddClient(&client)
-
-	WSServer.JoinRoom("/", hub.ID.String(), c)
-
-	return nil
+	return &manager
 }
 
-func run() {
-	defer shutdown()
-	if err := WSServer.Serve(); err != nil {
-		log.Fatalf("cant start WSServer Socket.IO: %v", err)
-	}
-}
+// SocketConnection - handle request on creating new ws connection
+func (s *ServerManager) SocketConnection(w http.ResponseWriter, r *http.Request) {
+	var upgrader = websocket.Upgrader{}
 
-func shutdown() {
-	if err := WSServer.Close(); err != nil {
-		log.Fatalf("cant stop WSServer Socket.IO: %v", err)
-	}
-}
+	t := r.URL.Query().Get("token")
 
-// SendMessage - sending a message to the hub
-func SendMessage(msg string, hubID string) string {
-	ok := WSServer.BroadcastToRoom("/", hubID, "test", msg)
-	if !ok {
-		fmt.Println("cant send message in room")
+	if t[:6] != "bearer" {
+		return
 	}
 
-	return fmt.Sprintf("message sent to %s", hubID)
-}
+	tokenString := t[7:]
 
-// SendMessageToUser - sending a message to the specified client
-func SendMessageToUser(cID string, msg string) string {
-	client := hubs.GetClientByID(cID)
-
-	WSServer.ForEach("/", client.HubID, func(conn socketio.Conn) {
-		if client.ConnectionID == conn.ID() {
-			conn.Emit("test2", msg, 1)
+	token, _ := jwt.ParseWithClaims(tokenString, &domain.JwtInfo{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("неизвестный метод подписи: %v", token.Header["alg"])
 		}
+
+		return []byte(config.Get().JwtKey), nil
 	})
 
-	return fmt.Sprintf("Message sended to %v", client.ID.String())
+	custromClaims := token.Claims.(*domain.JwtInfo)
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Errorf("Error during connection upgradation: %v", err)
+		return
+	}
+
+	err = conn.WriteMessage(1, []byte("pong"))
+	if err != nil {
+		log.Errorf("Error of sending message: %v", err)
+		return
+	}
+
+	s.Connections[strconv.Itoa(custromClaims.UserID)] = conn
+	log.Debugf("Connection with token - %v created", strconv.Itoa(custromClaims.UserID))
 }
